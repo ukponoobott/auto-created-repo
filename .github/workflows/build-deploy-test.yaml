@@ -1,0 +1,38 @@
+name: Build and Deploy to test
+on:  
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+
+jobs:  
+  build:
+    name: Build Pipeline
+    uses: perizer/shared-workflows/.github/workflows/image-build.yaml@v1.0.11-rc1
+    with:
+      application: <application_name>
+      environment: test
+      build-directory: '.'
+      organization: cipherauth
+      runner: cipherauth-gha-runner-scale-set
+    secrets:
+      azure_client_id: ${{ secrets.ARM_CLIENT_ID }}
+      azure_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      azure_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+      app_id: ${{ secrets.PERIZER_GITHUB_APP_APP_ID }}
+      private_key: ${{ secrets.PERIZER_GITHUB_APP_CLIENT_PRIVATE_KEY }}
+      acr_login_server: ${{ secrets.ACR_LOGIN_SERVER }}
+      acr_name: ${{ secrets.AZURE_ACR_NAME }}
+  deploy:
+    name: Deploy Pipeline
+    uses: perizer/shared-workflows/.github/workflows/argocd-tag-updater.yaml@v1.0.10
+    needs:
+      - build
+    with:
+      organization: cipherauth
+      chart: <chart_name>
+      environment: test
+      ondemand: false
+      component: <component_name(service or application)>
+      runner: cipherauth-gha-runner-scale-set
+    secrets: inherit
